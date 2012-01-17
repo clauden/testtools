@@ -1,3 +1,4 @@
+#!/usr/bin/env ruby
 
 require "open4"
 require "slop"
@@ -48,12 +49,14 @@ if __FILE__ == $0
 		on :n, :numfiles, 'number of files', num_files
 		on :s, :size, 'file size in #{BLOCKSIZE/1024)kB blocks', max_size
 		on :r, :random, 'random file sizes', optional: true # policy == :random
+		on :c, :constant, 'constant file sizes', optional: true # policy == :constant
 	end
 
 	dest_dir = opts[:destdir]
 	num_files = opts[:numfiles].to_i
 	max_size = opts[:size].to_i
-	policy = opts.random? ? :random : :constant
+	policy = opts.random? || opts.constant?
+	# policy = opts.random? ? :random : :constant
 
 	p dest_dir 
 	p num_files
