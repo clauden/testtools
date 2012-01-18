@@ -71,8 +71,6 @@ if __FILE__ == $0
 		exit 1
 	end
 
-	puts opts.to_hash
-
 	dest_dir = opts[:destdir] if opts[:destdir]
 	num_files = opts[:numfiles].to_i if opts[:numfiles]
 	max_size = opts[:size].to_i if opts[:size] 
