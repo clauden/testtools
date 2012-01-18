@@ -1,5 +1,5 @@
 require 'open4'
-# require 'test/unit'
+require 'fileutils'
 
 CLI = '../make-files.rb'
 TEST_DIR = './tmp'
