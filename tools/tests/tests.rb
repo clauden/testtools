@@ -2,7 +2,7 @@ require 'open4'
 require 'fileutils'
 
 CLI = '../make-files.rb'
-TEST_DIR = './tmp'
+TEST_DIR = './temp'
 
 @@debug = false
 @@assertions = 0
@@ -39,7 +39,6 @@ class Tests
 	end
 
 	def setup
-		puts "set up"
 		@files = {}
 		@test_dir = "#{TEST_DIR}/#{random_name}"
 		cmd = "mkdir -p #{@test_dir}"
@@ -47,7 +46,6 @@ class Tests
 	end
 
 	def do_a_test(cmd)
-		# p "running #{cmd}"
 		status, output = xrun(cmd)
 		# p output.inspect
 		
@@ -57,6 +55,8 @@ class Tests
 			f = "#{@test_dir}/#{f}" 
 			c = c.to_i
 			# puts f,c
+
+			# puts "do_a_test: f = #{f}, c = #{c}"
 
 			@files[f] = c
 
@@ -103,10 +103,10 @@ class Tests
 	end
 
 	def teardown
-		puts "tear down"
 		# @files.each_key do |f|
 		#	File.delete(f)
 		# end
+		
 		FileUtils.rm_rf(@test_dir)
 	end
 end
