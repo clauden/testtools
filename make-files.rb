@@ -44,19 +44,21 @@ end
 #
 if __FILE__ == $0
 
-	# dest_dir = "."
-	# num_files = 10
-	# max_size = 100    # blocks
-	# policy = :random
-	
+	dest_dir = DEFAULT_DEST_DIR
+	num_files = DEFAULT_NUM_FILES
+	max_size = DEFAULT_MAX_SIZE 	# blocks
+	policy = :random
+
+	opts = nil
 	
 	begin
 		opts = Slop.parse(:strict => true) do
-			on :d, :destdir=, 'destination directory', DEFAULT_DEST_DIR
-			on :n, :numfiles, 'number of files', :default => DEFAULT_NUM_FILES
-			on :z, :size, "file size in #{BLOCKSIZE/1024}kB blocks", :default => DEFAULT_MAX_SIZE
-			on :r, :random, 'random file sizes', optional: true # policy == :random
-			on :c, :constant, 'constant file sizes', optional: true # policy == :constant
+			on :d, :destdir=, 'destination directory'
+			on :n, :numfiles=, 'number of files'
+			on :z, :size=, "file size in #{BLOCKSIZE/1024}kB blocks"
+			on :r, :random, 'random file sizes'
+			on :c, :constant, 'constant file sizes'
+
 			banner "Usage: #{$0} [options]"
 			on :h, :help, 'get help' do 
 				puts help
@@ -68,8 +70,11 @@ if __FILE__ == $0
 		puts "Try --help for more info"
 		exit 1
 	end
-	dest_dir = opts[:destdir]
-	num_files = opts[:numfiles].to_i 
+
+	puts opts.to_hash
+
+	dest_dir = opts[:destdir] if opts[:destdir]
+	num_files = opts[:numfiles].to_i if opts[:numfiles]
 	max_size = opts[:size].to_i if opts[:size] 
 	policy = opts.random? ? :random : :constant
 
