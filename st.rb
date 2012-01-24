@@ -78,15 +78,18 @@ class Tests < SimpleTest
 		run(cmd)	
 	end
 
+	#
+	# This is wrong, ls s3://bucket/prefix should work.  
+	# but it doesn't.
+	# Needs to be fixed in backend.
+	#
 	def object_exists(bucket, name)
-
-		# this is wrong, ls s3://bucket/prefix should work.  
-		# but it doesn't.
 		cmd = "#{s3cmd} ls s3://#{bucket}"
 		objects = run(cmd)	
 		objects.each do |l|
 			trace "LS RETURNS: #{l}"
-			f = l.split[3]
+			f = l.split[3].rpartition('/')[-1]
+			trace "checking: #{f} against #{name}"
 			return true if f.match(name)
 		end
 		false
@@ -101,18 +104,6 @@ class Tests < SimpleTest
 		delete_bucket("xyzzy")
 	end
 
-	# put this file into a bucket
-	def _test_bucket_basics
-		assert(bucket_exists(@test_bucket), "bucket doesnt exist")
-		trace "bucket exists"
-		cmd = "#{s3cmd} put #{__FILE__} s3://#{@test_bucket}"
-		run(cmd)
-		trace "cmd ran"
-		assert(object_exists(@test_bucket, __FILE__), "object doesnt exist")
-		trace "object exists"
-	end
-		
-		
 	#
 	# create testdata files
 	# returns name, checksum list
@@ -133,7 +124,7 @@ class Tests < SimpleTest
 			run(cmd)
 		end
 		names.each do |f|
-			assert(object_exists(bucket, f), "put_files: object doesnt exist")
+			assert(object_exists(bucket, f.rpartition('/')[-1]), "put_files: object doesnt exist")
 		end
 	end
 
@@ -144,7 +135,8 @@ class Tests < SimpleTest
 	def unlink(names)
 		names = [names] if not names.respond_to?('each')
 		names.each do |f|
-			cmd = "#{s3cmd} rm s3://#{bucket}/#{f}"
+			assert(file_exists(f), "unlink: file not found")
+			cmd = "rm #{f}"
 			run(cmd)
 		end
 	end
@@ -157,9 +149,9 @@ class Tests < SimpleTest
 	def get_file(name, bucket = @test_bucket)
 		path = "#{TEST_DIR}/#{name}"
 
-		assert(object_exists(bucket, name), "get_file: object doesnt exist")
+		assert(object_exists(bucket, name), "get_file: object '#{name}' doesnt exist")
 
-		cmd = "#{s3cmd} get #{bucket}/#{name} #{path}"
+		cmd = "#{s3cmd} get s3://#{bucket}/#{name} #{path}"
 		run(cmd)
 		assert(file_exists("#{path}"), "get_file: file doesnt exist")
 
@@ -195,7 +187,7 @@ class Tests < SimpleTest
 		unlink(@files.keys)
 
 		@files.each_key do |f|
-			sum = get_file(f)
+			sum = get_file(f.rpartition('/')[-1])
 			assert(sum == @files[f], "bad checksum")
 		end
 		
@@ -227,6 +219,7 @@ end
 if __FILE__ == $0
 
 	opts = Slop.new(:strict => true) do
+		on :n, :noteardown, 'do not tear down on failure'
 		on :d, :debug, 'enable debug'
 		banner "Usage: #{$0} [options] [test | prod | s3]" 		\
 					 "\nWhere 'test' is basho test env, 'prod' is SL, 's3' is Amazon"
@@ -258,8 +251,14 @@ if __FILE__ == $0
 
 	x = Tests.new
 	x.debug = opts[:debug] if opts[:debug] 
+	x.no_teardown_on_fail = opts[:noteardown] if opts[:noteardown] 
 	x.main
 end
+
+
+#
+# unimplemented tests follow
+#
 
 	def _test_bucket_create_delete
 		b = random_name
@@ -309,4 +308,17 @@ end
 		assert(sum == @files[name], "bad checksum")
 		
 	end
+
+	# put this file into a bucket
+	def _test_bucket_basics
+		assert(bucket_exists(@test_bucket), "bucket doesnt exist")
+		trace "bucket exists"
+		cmd = "#{s3cmd} put #{__FILE__} s3://#{@test_bucket}"
+		run(cmd)
+		trace "cmd ran"
+		assert(object_exists(@test_bucket, __FILE__), "object doesnt exist")
+		trace "object exists"
+	end
+		
+		
 
