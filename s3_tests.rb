@@ -1,6 +1,8 @@
 #! /usr/bin/env ruby
+
 require 'open4'
 require 'fileutils'
+require 'slop'
 
 S3CMD = 's3cmd'
 TEST_DIR = './temp'
@@ -30,7 +32,7 @@ def run(cmd)
 	trace "RUN: #{cmd}"
 	pid, stdin, stdout, stderr = Open4::popen4(cmd)
 	ignored, status = Process::waitpid2 pid	
-	raise "EXEC FAILED (#{status}): #{cmd}\n#{stderr.readlines.join('')}" if status != 0
+	raise "EXEC FAILED (#{status}): #{cmd}\n#{stderr.readlines.join('')}" if status.exitstatus != 0
 	return stdout.readlines
 end
 
@@ -265,6 +267,26 @@ end
 
 if __FILE__ == $0
 
+	opts = Slop.new(:strict => true) do
+		on :d, :debug, 'enable debug'
+		banner "Usage: #{$0} [options] [test | prod | s3]" 		\
+					 "\nWhere 'test' is basho test env, 'prod' is SL, 's3' is Amazon"
+		on :h, :help, 'get help' do 
+			puts help
+			exit 2
+		end
+	end
+
+	begin
+		opts.parse!
+	rescue Slop::InvalidOptionError => x
+		puts x.to_s
+		puts opts.help	
+		exit 1
+	end
+
+	@@debug = opts[:debug] if opts[:debug] 
+
 	case ARGV[0]
 	when 'test'
 		@@s3cmd_opts += " -c #{BASHO_TEST_CONFIG}"
@@ -274,19 +296,21 @@ if __FILE__ == $0
 		@@s3cmd_opts += " -c #{S3_CONFIG}"
 	when nil
 		# use env default
-	else
-		puts "Usage: #{__FILE__} [test | prod | s3]"
-		puts "Where 'test' is basho test env, 'prod' is SL, 's3' is Amazon"
-		exit 1
 	end	
 
 	current_test = nil
 
 	t = Tests.new
 	t.methods.grep(/^test_/).each do |m|
-		t.method(:setup).call rescue nil
 		begin
-			puts "Running test #{m.to_s}"
+			t.method(:setup).call
+		rescue
+			puts "setup failed"
+			raise
+		end
+
+		begin
+			puts "Running #{m.to_s}"
 			@@tests += 1
 			current_test = m.to_s
 			t.method(m).call
@@ -298,9 +322,13 @@ if __FILE__ == $0
 			@@failed_tests += 1
 			puts "FAILED: #{current_test}"
 		end
-		t.method(:teardown).call rescue nil
+		begin
+			t.method(:teardown).call 	
+		rescue
+			puts "teardown failed"
+			raise
+		end
 	end
 	
 	puts "#{@@assertions} assertions, #{@@failed_assertions} failed"
-	puts "#{@@tests} tests, #{@@failed_tests} failed"
-end
+	puts "#{@@tests} tests, #{@@failed_tests} failed" end
