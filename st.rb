@@ -10,7 +10,7 @@ MAKE_FILES_CMD = './tools/make_files.rb'
 TEST_DIR = './temp'
 
 # s3cmd credentials, endpoints
-BASHO_TEST_CONFIG = './basho-test.cfg'
+BASHO_TEST_CONFIG = './test.cfg'
 SL_PROD_CONFIG = './production.cfg'
 S3_CONFIG = './amazon.cfg'
 
