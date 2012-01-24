@@ -49,25 +49,26 @@ if __FILE__ == $0
 	max_size = DEFAULT_MAX_SIZE 	# blocks
 	policy = :random
 
-	opts = nil
-	
-	begin
-		opts = Slop.parse(:strict => true) do
-			on :d, :destdir=, 'destination directory'
-			on :n, :numfiles=, 'number of files'
-			on :z, :size=, "file size in #{BLOCKSIZE/1024}kB blocks"
-			on :r, :random, 'random file sizes'
-			on :c, :constant, 'constant file sizes'
+	opts = Slop.new(:strict => true) do
+		on :d, :destdir=, 'destination directory'
+		on :n, :numfiles=, 'number of files'
+		on :z, :size=, "file size in #{BLOCKSIZE/1024}kB blocks"
+		on :r, :random, 'random file sizes'
+		on :c, :constant, 'constant file sizes'
 
-			banner "Usage: #{$0} [options]"
-			on :h, :help, 'get help' do 
-				puts help
-				exit 2
-			end
+		banner "Usage: #{$0} [options]"
+		on :h, :help, 'get help' do 
+			puts help
+			exit 2
 		end
+	end
+
+	begin
+		opts.parse!
 	rescue Slop::InvalidOptionError => x
 		puts x.to_s
-		puts "Try --help for more info"
+		puts opts.help	
+		# puts "Try --help for more info"
 		exit 1
 	end
 
