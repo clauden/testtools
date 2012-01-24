@@ -11,13 +11,13 @@ TEST_DIR = './temp'
 @@failed_tests = 0
 
 #
-# return status, stdout
+# return stdout
 #
-def xrun(cmd)
+def run(cmd)
 	pid, stdin, stdout, stderr = Open4::popen4(cmd)
 	ignored, status = Process::waitpid2 pid	
-	raise "FAILED (#{status}): #{cmd}\n#{stderr.readlines.join('')}" if status != 0
-	return status, stdout.readlines
+	raise "FAILED (#{status}): #{cmd}\n#{stderr.readlines.join('')}" if status.exitstatus != 0
+	return stdout.readlines
 end
 
 def assert(condition, note ="assertion failed")
@@ -42,11 +42,11 @@ class Tests
 		@files = {}
 		@test_dir = "#{TEST_DIR}/#{random_name}"
 		cmd = "mkdir -p #{@test_dir}"
-		xrun(cmd)
+		run(cmd)
 	end
 
 	def do_a_test(cmd)
-		status, output = xrun(cmd)
+		output = run(cmd)
 		# p output.inspect
 		
 		output.each do |l|
@@ -65,7 +65,7 @@ class Tests
 	
 			# check checksum
 			cmd = "sum #{f}"
-			x, cs = xrun(cmd)
+			cs = run(cmd)
 			assert(cs[0].split[0].to_i == c, "bad checksum")
 
 			# raise "bad checksum" if cs[0].split[0].to_i != c
