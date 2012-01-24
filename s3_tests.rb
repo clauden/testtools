@@ -1,3 +1,4 @@
+#! /usr/bin/env ruby
 require 'open4'
 require 'fileutils'
 
@@ -14,13 +15,19 @@ S3_CONFIG = './amazon.cfg'
 @@failed_assertions = 0
 @@tests = 0
 @@failed_tests = 0
-@@s3cmd_opts = nil
+@@s3cmd_opts = ''
+@@debug = nil
+
+
+def trace(s)
+	puts s if @@debug
+end
 
 #
 # return status, stdout
 #
 def run(cmd)
-	puts "RUN: #{cmd}"
+	trace "RUN: #{cmd}"
 	pid, stdin, stdout, stderr = Open4::popen4(cmd)
 	ignored, status = Process::waitpid2 pid	
 	raise "EXEC FAILED (#{status}): #{cmd}\n#{stderr.readlines.join('')}" if status != 0
@@ -98,7 +105,7 @@ class Tests
 		cmd = "#{s3cmd} ls s3://#{bucket}"
 		objects = run(cmd)	
 		objects.each do |l|
-			puts "LS RETURNS: #{l}"
+			trace "LS RETURNS: #{l}"
 			f = l.split[3]
 			return true if f.match(name)
 		end
@@ -113,12 +120,12 @@ class Tests
 	# put this file into a bucket
 	def test_bucket_basics
 		assert(bucket_exists(@test_bucket), "bucket doesnt exist")
-		puts "bucket exists"
+		trace "bucket exists"
 		cmd = "#{s3cmd} put #{__FILE__} s3://#{@test_bucket}"
 		run(cmd)
-		puts "cmd ran"
+		trace "cmd ran"
 		assert(object_exists(@test_bucket, __FILE__), "object doesnt exist")
-		puts "object exists"
+		trace "object exists"
 	end
 		
 		
@@ -153,7 +160,7 @@ class Tests
 	end
 
 	def setup
-		puts "setup"
+		trace "setup"
 		@files = {}
 
 		@test_dir = "#{TEST_DIR}/#{random_name}"
@@ -234,7 +241,7 @@ class Tests
 	end
 
 	def teardown
-		puts "teardown"
+		trace "teardown"
 		FileUtils.rm_rf(@test_dir)
 		delete_bucket(@test_bucket)
 	end
@@ -260,11 +267,11 @@ if __FILE__ == $0
 
 	case ARGV[0]
 	when 'test'
-		@@s3cmd_opts += " -c #{BASHO_TEST_CFG}"
+		@@s3cmd_opts += " -c #{BASHO_TEST_CONFIG}"
 	when 'prod'
-		@@s3cmd_opts += " -c #{SL_PROD_CFG}"
+		@@s3cmd_opts += " -c #{SL_PROD_CONFIG}"
 	when 's3'
-		@@s3cmd_opts += " -c #{S3_CFG}"
+		@@s3cmd_opts += " -c #{S3_CONFIG}"
 	when nil
 		# use env default
 	else
