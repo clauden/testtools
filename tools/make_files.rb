@@ -90,7 +90,7 @@ if __FILE__ == $0
 		size = policy == :constant ? max_size : rand(max_size)
 		name = "#{rand(RANDEXP).to_s(RANDBASE)}.#{i}"	# clever random filename
 		checksum = create_file("#{dest_dir}/#{name}", size)
-		puts "#{name}\t#{checksum}"
+		puts "#{dest_dir}/#{name}\t#{checksum}"
 	end
 
 
