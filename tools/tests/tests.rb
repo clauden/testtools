@@ -1,7 +1,7 @@
 require 'open4'
 require 'fileutils'
 
-CLI = '../make-files.rb'
+CLI = '../make_files.rb'
 TEST_DIR = './temp'
 
 @@debug = false
