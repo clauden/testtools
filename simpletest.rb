@@ -12,6 +12,7 @@ class SimpleTest
 	@@failed_assertions = 0
 	@@tests = 0
 	@@failed_tests = 0
+	@@no_teardown_on_fail = nil				# leave fixtures up if a test fails
 
 	def SimpleTest.trace(s)
 		puts s if @@debug
@@ -66,8 +67,10 @@ class SimpleTest
 	end
 
 	def _teardown
-		SimpleTest.trace "teardown"
-		teardown if respond_to? 'teardown'
+		if @@current_test_failed and not @@no_teardown_on_fail
+			SimpleTest.trace "teardown"
+			teardown if respond_to? 'teardown'
+		end
 	end
 
 
@@ -87,6 +90,14 @@ class SimpleTest
 		SimpleTest.run(s)
 	end
 
+	def no_teardown_on_fail
+		class_variable_get(:@@no_teardown_on_fail)
+	end
+
+	def no_teardown_on_fail=(d)
+		SimpleTest.class_variable_set(:@@no_teardown_on_fail, d)
+	end
+
 	def assert(condition, note)
 		SimpleTest.assert(condition, note)
 	end
@@ -104,6 +115,7 @@ class SimpleTest
 			end
 
 			begin
+				@@current_test_failed = nil
 				puts "Running #{m.to_s}"
 				@@tests += 1
 				current_test = m.to_s
@@ -113,6 +125,7 @@ class SimpleTest
 					puts "caught: #{x.inspect}"
 					puts x.backtrace.join("\n")
 				end
+				@@current_test_failed = true
 				@@failed_tests += 1
 				puts "FAILED: #{current_test}"
 			end
