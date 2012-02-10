@@ -1,4 +1,4 @@
-#)! /usr/bin/env ruby
+#! /usr/bin/env ruby
 
 require 'open4'
 require 'fileutils'
@@ -16,10 +16,12 @@ S3_CONFIG = './amazon.cfg'
 
 # test parameters
 SMALL_FILE_MAX_LENGTH = 1024 * 8
+LARGE_FILE_MAX_LENGTH = SMALL_FILE_MAX_LENGTH * 10
 RANDOM_LENGTH = true
-LARGE_NUM_FILES = 1
+MANY_FILES = 5
+FEW_FILES = 1
 
-# special stuff 
+# special stuff for generating random filenames
 RANDBASE = 36
 RANDEXP = RANDBASE ** 8
 
@@ -99,11 +101,6 @@ class Tests < SimpleTest
 		File.exist? name
 	end
 
-	def test_foo
-		create_bucket("xyzzy")
-		delete_bucket("xyzzy")
-	end
-
 	#
 	# create testdata files
 	# returns name, checksum list
@@ -175,7 +172,7 @@ class Tests < SimpleTest
 
 	def test_many_small_objects	
 		
-		create_files(SMALL_FILE_MAX_LENGTH, RANDOM_LENGTH, LARGE_NUM_FILES).each do |l|
+		create_files(SMALL_FILE_MAX_LENGTH, RANDOM_LENGTH, MANY_FILES).each do |l|
 			name, sum = l.split
 			@files[name] = sum	
 		end
@@ -199,6 +196,9 @@ class Tests < SimpleTest
 		delete_bucket(@test_bucket)
 	end
 
+	#
+	# unimplemented tests 
+	#
 	def one_medium_object
 	end
 
@@ -221,7 +221,7 @@ if __FILE__ == $0
 	opts = Slop.new(:strict => true) do
 		on :n, :noteardown, 'do not tear down on failure'
 		on :d, :debug, 'enable debug'
-		banner "Usage: #{$0} [options] [test | prod | s3]" 		\
+		banner "Usage: #{$0} [options] test | prod | s3" 		\
 					 "\nWhere 'test' is basho test env, 'prod' is SL, 's3' is Amazon"
 		on :h, :help, 'get help' do 
 			puts help
@@ -237,88 +237,28 @@ if __FILE__ == $0
 		exit 1
 	end
 
+	s3cmd_opts = ""
+	p "before #{s3cmd_opts.inspect}"
 
 	case ARGV[0]
 	when 'test'
-		@@s3cmd_opts += " -c #{BASHO_TEST_CONFIG}"
+		s3cmd_opts += " -c #{BASHO_TEST_CONFIG}"
 	when 'prod'
-		@@s3cmd_opts += " -c #{SL_PROD_CONFIG}"
+		s3cmd_opts += " -c #{SL_PROD_CONFIG}"
 	when 's3'
-		@@s3cmd_opts += " -c #{S3_CONFIG}"
+		s3cmd_opts += " -c #{S3_CONFIG}"
 	when nil
-		# use env default
+		puts "I prefer not to use your default s3cmd configuration."
+		puts opts.help	
+		exit 2
 	end	
 
+	p "after #{s3cmd_opts.inspect}"
+	p @@s3cmd_opts
+	@@s3cmd_opts += s3cmd_opts
+
 	x = Tests.new
-	x.debug = opts[:debug] if opts[:debug] 
+	x.debug = true # opts[:debug] if opts[:debug] 
 	x.no_teardown_on_fail = opts[:noteardown] if opts[:noteardown] 
 	x.main
 end
-
-
-#
-# unimplemented tests follow
-#
-
-	def _test_bucket_create_delete
-		b = random_name
-
-		create_bucket(b)
-		assert(bucket_exists(b), "bucket not created")
-
-		delete_bucket(b)
-		assert(!bucket_exists(b), "bucket not destroyed")
-	end
-
-	def _test_one_small_object_with_simple_name
-		# create a file
-		name, sum = create_files(SMALL_FILE, RANDOM_LENGTH, 1)
-		@files[name] = sum	
-		
-		# put file -> object
-		put_files(name)
-	
-		# clean up file
-		unlink(name)
-
-		# get object -> file with checksum
-		sum = get_file(name)
-
-		# verify
-		assert(sum == @files[name], "bad checksum")
-		
-	end
-
-	def _test_one_small_object_with_path_name
-		# create a file 
-		name, sum = create_files(SMALL_FILE, RANDOM_LENGTH, 1)
-		# name = "#{name}/#{name}/"
-		@files[name] = sum	
-
-		# put file -> object
-		put_files(name)
-	
-		# clean up file
-		unlink(name)
-
-		# get object -> file with checksum
-		sum = get_file(name)
-
-		# verify
-		assert(sum == @files[name], "bad checksum")
-		
-	end
-
-	# put this file into a bucket
-	def _test_bucket_basics
-		assert(bucket_exists(@test_bucket), "bucket doesnt exist")
-		trace "bucket exists"
-		cmd = "#{s3cmd} put #{__FILE__} s3://#{@test_bucket}"
-		run(cmd)
-		trace "cmd ran"
-		assert(object_exists(@test_bucket, __FILE__), "object doesnt exist")
-		trace "object exists"
-	end
-		
-		
-
