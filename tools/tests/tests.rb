@@ -14,6 +14,7 @@ TEST_DIR = './temp'
 # return stdout
 #
 def run(cmd)
+	# puts cmd
 	pid, stdin, stdout, stderr = Open4::popen4(cmd)
 	ignored, status = Process::waitpid2 pid	
 	raise "FAILED (#{status}): #{cmd}\n#{stderr.readlines.join('')}" if status.exitstatus != 0
@@ -52,7 +53,7 @@ class Tests
 		output.each do |l|
 			f, c = l.split
 
-			f = "#{@test_dir}/#{f}" 
+			# f = "#{@test_dir}/#{f}" 
 			c = c.to_i
 			# puts f,c
 
@@ -61,7 +62,7 @@ class Tests
 			@files[f] = c
 
 			# check existence
-			assert(test(?e,f), "file missing" )
+			assert(test(?e,f), "file #{f} missing" )
 	
 			# check checksum
 			cmd = "sum #{f}"
